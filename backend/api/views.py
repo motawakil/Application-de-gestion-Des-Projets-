@@ -8,6 +8,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
+
+from django_filters.rest_framework import DjangoFilterBackend
+
 class UserCreateView(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -26,27 +29,28 @@ class UserCreateView(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
 
+
+
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Sécurité : un utilisateur ne voit que SES projets
-        return Project.objects.filter(owner=self.request.user)
+        # Un utilisateur ne voit QUE ses projets
+        return Project.objects.filter(owner=self.request.user).order_by('-created_at')
 
     def perform_create(self, serializer):
-        # On lie automatiquement le projet à l'utilisateur connecté
         serializer.save(owner=self.request.user)
 
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['status', 'priority', 'due_date', 'project'] # Filtrage activé
 
     def get_queryset(self):
-        # Sécurité : uniquement les tâches des projets de l'utilisateur
+        # Uniquement les tâches des projets appartenant à l'utilisateur
         return Task.objects.filter(project__owner=self.request.user)
-    
-
 
 
 

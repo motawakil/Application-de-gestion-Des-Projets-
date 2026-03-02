@@ -3,6 +3,9 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 
+import ProjectDetail from './components/ProjectDetail'; // On va le créer
+
+
 import './App.css';
 
 const PrivateRoute = ({ children }) => {
@@ -25,6 +28,15 @@ function App() {
             </PrivateRoute>
           }
         />
+
+        <Route 
+  path="/projects/:id" 
+  element={
+    <PrivateRoute>
+      <ProjectDetail />
+    </PrivateRoute>
+  } 
+/>
 
         {/* Redirection par défaut */}
         <Route path="*" element={<Navigate to="/login" />} />

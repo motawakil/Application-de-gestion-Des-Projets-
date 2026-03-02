@@ -69,6 +69,19 @@ export const getMe = async () => {
   const response = await api.get("/users/me/");
   return response.data;
 };
+
+// Projets
+export const getProjects = () => api.get("/projects/");
+export const createProject = (data) => api.post("/projects/", data);
+export const deleteProject = (id) => api.delete(`/projects/${id}/`);
+
+// Tâches
+export const getTasks = (projectId) => api.get(`/tasks/?project=${projectId}`);
+export const createTask = (data) => api.post("/tasks/", data);
+export const updateTask = (id, data) => api.patch(`/tasks/${id}/`, data);
+export const deleteTask = (id) => api.delete(`/tasks/${id}/`);
+
+
 export default api;
 
 
