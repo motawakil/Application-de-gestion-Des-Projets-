@@ -74,13 +74,15 @@ export const getMe = async () => {
 export const getProjects = () => api.get("/projects/");
 export const createProject = (data) => api.post("/projects/", data);
 export const deleteProject = (id) => api.delete(`/projects/${id}/`);
-// Mettre à jour un projet (Nom et Description)
 export const updateProject = (id, data) => api.patch(`/projects/${id}/`, data);
 // Tâches
 export const getTasks = (projectId) => api.get(`/tasks/?project=${projectId}`);
 export const createTask = (data) => api.post("/tasks/", data);
 export const updateTask = (id, data) => api.patch(`/tasks/${id}/`, data);
 export const deleteTask = (id) => api.delete(`/tasks/${id}/`);
+
+
+export const askChatbot = (message) => api.post("/chatbot/", { message });
 
 
 export default api;

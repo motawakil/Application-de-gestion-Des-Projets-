@@ -4,7 +4,7 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 
 import ProjectDetail from './components/ProjectDetail'; // On va le créer
-
+import Chatbot from "./components/Chatbot";
 
 import './App.css';
 
@@ -41,6 +41,8 @@ function App() {
         {/* Redirection par défaut */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
+
+      <Chatbot />
     </Router>
   );
 }
