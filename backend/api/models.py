@@ -17,3 +17,6 @@ class Task(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='TODO')
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
     due_date = models.DateField(null=True, blank=True)
+
+# to add more fields like assigned_to, comments, attachments, etc. in the future! 
+

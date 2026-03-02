@@ -1,10 +1,21 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* Applique le fond à la page entière */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  /* C'est ici qu'on met le background global */
+  background-color: #f3f4f6; /* Un gris très clair moderne par exemple */
 }
 
+#root {
+  /* On enlève la limite de largeur pour le container principal si on veut que tout soit blanc */
+  /* Ou on la laisse si on veut que le CONTENU reste centré mais le FOND reste global */
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -39,4 +50,14 @@
 
 .read-the-docs {
   color: #888;
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bg-white {
+  animation: fadeIn 0.5s ease-out;
 }

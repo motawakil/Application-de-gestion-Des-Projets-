@@ -1,6 +1,14 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
+import Dashboard from './components/Dashboard';
+
+import './App.css';
+
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem("access_token");
+  return token ? children : <Navigate to="/login" />;
+};
 
 function App() {
   return (
@@ -8,7 +16,17 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        {/* Redirection par défaut vers login */}
+
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Redirection par défaut */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
