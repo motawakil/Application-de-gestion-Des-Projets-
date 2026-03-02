@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getProjects, createProject, deleteProject, getMe } from "../services/api";
+// Ajoute updateProject dans tes imports api
+import { getProjects, createProject, deleteProject, getMe, updateProject } from "../services/api";
 import { 
   PlusCircle, Trash2, Folder, Layout, 
-  LogOut, User as UserIcon, Calendar, Briefcase 
+  LogOut, User as UserIcon, Calendar, Briefcase, Edit2 
 } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [projects, setProjects] = useState([]);
-  const [newProject, setNewProject] = useState({ name: "", description: "" });
   const [showForm, setShowForm] = useState(false);
+  
+  // États pour le formulaire
+  const [newProject, setNewProject] = useState({ name: "", description: "" });
+  const [editingProject, setEditingProject] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,15 +38,37 @@ const Dashboard = () => {
     navigate("/login");
   };
 
-  const handleCreateProject = async (e) => {
+  // --- LOGIQUE DE SAUVEGARDE (CREATE & UPDATE) ---
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await createProject(newProject);
+      if (editingProject) {
+        // Mode Edition
+        await updateProject(editingProject.id, newProject);
+      } else {
+        // Mode Création
+        await createProject(newProject);
+      }
+      
+      // Reset des états
       setNewProject({ name: "", description: "" });
+      setEditingProject(null);
       setShowForm(false);
+      
+      // Rafraîchir la liste
       const res = await getProjects();
       setProjects(res.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error("Erreur lors de la sauvegarde :", err); 
+    }
+  };
+
+  // --- PRÉPARER L'ÉDITION ---
+  const handleEditClick = (e, project) => {
+    e.stopPropagation(); // Empêche de naviguer vers les détails
+    setEditingProject(project);
+    setNewProject({ name: project.name, description: project.description });
+    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
@@ -96,7 +122,10 @@ const Dashboard = () => {
           </div>
           
           <button 
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (showForm) { setEditingProject(null); setNewProject({name:"", description:""}); }
+              setShowForm(!showForm);
+            }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition shadow-lg shadow-blue-200 active:scale-95"
           >
             <PlusCircle size={20} />
@@ -104,11 +133,13 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* --- FORMULAIRE --- */}
+        {/* --- FORMULAIRE HYBRIDE (CREATE/UPDATE) --- */}
         {showForm && (
           <div className="mb-12 bg-white p-8 rounded-2xl shadow-xl border border-blue-50 animate-fadeIn max-w-2xl mx-auto">
-            <h3 className="text-lg font-bold mb-4 text-gray-800">Détails du projet</h3>
-            <form onSubmit={handleCreateProject} className="space-y-4">
+            <h3 className="text-lg font-bold mb-4 text-gray-800">
+              {editingProject ? `Modifier : ${editingProject.name}` : "Détails du nouveau projet"}
+            </h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 type="text"
                 placeholder="Nom du projet"
@@ -124,9 +155,20 @@ const Dashboard = () => {
                 onChange={(e) => setNewProject({...newProject, description: e.target.value})}
                 rows="3"
               />
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold transition shadow-md">
-                Lancer le projet
-              </button>
+              <div className="flex gap-3">
+                 {editingProject && (
+                    <button 
+                      type="button"
+                      onClick={() => { setShowForm(false); setEditingProject(null); setNewProject({name:"", description:""}); }}
+                      className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-200 transition"
+                    >
+                      Annuler
+                    </button>
+                 )}
+                 <button type="submit" className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold transition shadow-md">
+                   {editingProject ? "Enregistrer les modifications" : "Lancer le projet"}
+                 </button>
+              </div>
             </form>
           </div>
         )}
@@ -146,12 +188,24 @@ const Dashboard = () => {
                   <div className="bg-blue-50 p-4 rounded-2xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
                     <Folder size={26} />
                   </div>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} 
-                    className="text-gray-300 hover:text-red-500 transition-colors p-2"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+                  <div className="flex gap-1">
+                    {/* BOUTON ÉDITER */}
+                    <button 
+                      onClick={(e) => handleEditClick(e, project)} 
+                      className="text-gray-300 hover:text-blue-500 transition-colors p-2"
+                      title="Modifier"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    {/* BOUTON SUPPRIMER */}
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} 
+                      className="text-gray-300 hover:text-red-500 transition-colors p-2"
+                      title="Supprimer"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
                 </div>
                 
                 <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
