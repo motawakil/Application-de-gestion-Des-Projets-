@@ -8,6 +8,8 @@ import {
 import { getHolidays } from "../services/holidayService"; 
 
 
+
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -15,6 +17,8 @@ const ProjectDetail = () => {
   const [tasks, setTasks] = useState([]);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [filters, setFilters] = useState({ status: "", priority: "" });
+  const [holidays, setHolidays] = useState([]);
+  const [isHolidayWarning, setIsHolidayWarning] = useState(null);
 
   // État pour la tâche (Nouvelle ou en cours d'édition)
   const [currentTask, setCurrentTask] = useState({
@@ -27,6 +31,11 @@ const ProjectDetail = () => {
   const [editingTaskId, setEditingTaskId] = useState(null);
 
   useEffect(() => {
+    const loadHolidays = async () => {
+    const data = await getHolidays('FR'); // Tu peux changer le code pays ici
+    setHolidays(data);
+  };
+  loadHolidays();
     fetchProjectDetails();
   }, [id, filters]);
 
@@ -89,6 +98,19 @@ const ProjectDetail = () => {
     }
   };
 
+
+  const handleDateChange = (e) => {
+  const selectedDate = e.target.value;
+  setCurrentTask({ ...currentTask, due_date: selectedDate });
+
+  // Vérifier si la date est un jour férié
+  const holiday = holidays.find(h => h.date === selectedDate);
+  if (holiday) {
+    setIsHolidayWarning(`Attention : le ${new Date(selectedDate).toLocaleDateString()} est un jour férié (${holiday.localName})`);
+  } else {
+    setIsHolidayWarning(null);
+  }
+};
   if (!project) return <div className="p-10 text-center text-gray-500">Chargement...</div>;
 
   return (
@@ -237,14 +259,27 @@ const ProjectDetail = () => {
                   </select>
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase ml-1">Date limite (Optionnel)</label>
-                <input 
-                  type="date"
-                  className="w-full p-4 border border-gray-100 rounded-2xl bg-gray-50 font-medium"
-                  value={currentTask.due_date} onChange={e => setCurrentTask({...currentTask, due_date: e.target.value})}
-                />
-              </div>
+
+
+<div className="space-y-1">
+  <label className="text-xs font-bold text-gray-400 uppercase ml-1">Date limite (Optionnel)</label>
+  <input 
+    type="date"
+    className={`w-full p-4 border rounded-2xl bg-gray-50 font-medium transition ${isHolidayWarning ? 'border-orange-300 ring-2 ring-orange-100' : 'border-gray-100'}`}
+    value={currentTask.due_date} 
+    onChange={handleDateChange}
+  />
+  
+  {/* Message d'alerte si jour férié */}
+  {isHolidayWarning && (
+    <div className="flex items-center gap-2 mt-2 p-3 bg-orange-50 text-orange-700 rounded-xl border border-orange-100 animate-pulse">
+      <AlertCircle size={16} />
+      <span className="text-xs font-bold">{isHolidayWarning}</span>
+    </div>
+  )}
+</div>
+
+
               <div className="flex gap-4 pt-6">
                 <button type="button" onClick={closeModal} className="flex-1 py-4 font-bold text-gray-400 hover:bg-gray-50 rounded-2xl transition">
                   Annuler
