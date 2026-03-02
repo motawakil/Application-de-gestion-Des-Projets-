@@ -61,3 +61,11 @@ html, body {
 .bg-white {
   animation: fadeIn 0.5s ease-out;
 }
+
+@keyframes progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+.animate-progress {
+  animation: progress 2.5s linear forwards;
+}
