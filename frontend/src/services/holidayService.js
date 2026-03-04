@@ -2,12 +2,14 @@ import axios from 'axios';
 
 const HOLIDAY_API_BASE = "https://date.nager.at/api/v3";
 
+// https://date.nager.at/PublicHoliday/Morocco , pour reccuperer les jours fériés du Maroc !! 
+
 /**
  * Récupère les jours fériés pour une année et un pays donnés
  * @param {string} countryCode - Code ISO du pays (ex: 'FR', 'MA', 'US')
  * @param {number} year - L'année souhaitée
  */
-export const getHolidays = async (countryCode = 'FR', year = new Date().getFullYear()) => {
+export const getHolidays = async (countryCode = 'MA', year = new Date().getFullYear()) => {
   try {
     const response = await axios.get(`${HOLIDAY_API_BASE}/PublicHolidays/${year}/${countryCode}`);
     return response.data; // Retourne un tableau d'objets { date, localName, name }
@@ -17,3 +19,4 @@ export const getHolidays = async (countryCode = 'FR', year = new Date().getFullY
     return [];
   }
 };
+
