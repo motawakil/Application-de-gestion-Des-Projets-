@@ -16,23 +16,35 @@ const Chatbot = () => {
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+const handleSend = async (e) => {
+  e.preventDefault();
+  if (!input.trim()) return;
+  
+  const userMsg = input;
+  setMessages(prev => [...prev, { role: "user", text: userMsg }]);
+  setInput("");
+  setIsLoading(true);
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    const userMsg = input;
-    setMessages(prev => [...prev, { role: "user", text: userMsg }]);
-    setInput("");
-    setIsLoading(true);
-    try {
-      const res = await askChatbot(userMsg);
-      setMessages(prev => [...prev, { role: "bot", text: res.data.response }]);
-    } catch {
-      setMessages(prev => [...prev, { role: "bot", text: "Désolé, j'ai eu un problème de connexion." }]);
-    } finally {
-      setIsLoading(false);
+  try {
+    const res = await askChatbot(userMsg);
+    const botData = res.data;
+
+    // On prépare le texte final
+    let fullMessage = botData.response;
+    
+    // Si on a reçu des tâches, on les liste proprement
+    if (botData.tasks && botData.tasks.length > 0) {
+      const taskList = botData.tasks.map(t => `- ${t.title}`).join("\n");
+      fullMessage += "\n\n" + taskList;
     }
-  };
+
+    setMessages(prev => [...prev, { role: "bot", text: fullMessage }]);
+  } catch (error) {
+    setMessages(prev => [...prev, { role: "bot", text: "Erreur de connexion." }]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="fixed bottom-6 right-6 z-50">

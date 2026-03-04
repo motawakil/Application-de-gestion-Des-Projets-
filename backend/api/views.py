@@ -1,3 +1,6 @@
+from datetime import timedelta
+from django.utils import timezone
+
 from django.conf import settings
 from django.contrib.auth.models import User
 
@@ -82,7 +85,43 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Task.objects.filter(
             project__owner=self.request.user
         )
+    # 🔹 GET /api/tasks/by-date/?date=2026-03-04
+    @action(detail=False, methods=['get'])
+    def by_date(self, request):
+        date = request.query_params.get("date")
 
+        if not date:
+            return Response({"error": "Date manquante"}, status=400)
+
+        tasks = self.get_queryset().filter(due_date=date)
+        serializer = self.get_serializer(tasks, many=True)
+        return Response(serializer.data)
+
+
+
+    # 🔹 GET /api/tasks/next-days/?days=3
+    @action(detail=False, methods=['get'])
+    def next_days(self, request):
+        days = request.query_params.get("days")
+
+        if not days:
+            return Response({"error": "Nombre de jours manquant"}, status=400)
+
+        try:
+            days = int(days)
+        except ValueError:
+            return Response({"error": "Valeur invalide"}, status=400)
+
+        today = timezone.now().date()
+        target_date = today + timedelta(days=days)
+
+        tasks = self.get_queryset().filter(
+            due_date__gte=today,
+            due_date__lte=target_date
+        )
+
+        serializer = self.get_serializer(tasks, many=True)
+        return Response(serializer.data)
 
 
 @api_view(['GET'])
@@ -96,34 +135,110 @@ def get_user_info(request):
         'username': user.username,
         'email': user.email
     })
-
+import json
+from datetime import timedelta
+from django.utils import timezone
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def chatbot_query(request):
-    """
-    Endpoint qui envoie un message utilisateur à Gemini
-    et retourne la réponse générée.
-    """
-
-    user_message = request.data.get('message')
+    user_message = request.data.get("message")
+    user = request.user
 
     if not user_message:
-        return Response({'error': 'Message vide'}, status=400)
+        return Response({"error": "Message vide"}, status=400)
 
+    # Configuration de la date pour l'IA
+    today = timezone.now().date()
+    today_str = today.isoformat()
+
+    model = genai.GenerativeModel("gemini-2.5-flash") # Utilisez votre version (ex: 1.5-flash)
+
+    # MISE À JOUR DU PROMPT : On demande à l'IA de répondre si c'est général
+    prompt = f"""
+Tu es un assistant de gestion de tâches nommé ProjectFlow AI. Nous sommes aujourd'hui le {today_str}.
+
+Si la question concerne les tâches (recherche par date ou période), retourne un JSON avec l'intention.
+Si la question est générale (salutations, questions sur toi, etc.), utilise l'intention "general" ET rédige une réponse amicale dans le champ "reply".
+
+Format JSON attendu :
+
+1) Pour une date précise :
+{{
+  "intent": "get_tasks_by_date",
+  "date": "YYYY-MM-DD"
+}}
+
+2) Pour les X prochains jours :
+{{
+  "intent": "get_tasks_next_days",
+  "days": number
+}}
+
+3) Sinon (salutations, aide, etc.) :
+{{
+  "intent": "general",
+  "reply": "Ta réponse conversationnelle ici en tant qu'assistant"
+}}
+
+Question utilisateur :
+{user_message}
+
+NE RETOURNE QUE DU JSON.
+"""
+
+    response = model.generate_content(prompt)
+    raw = response.text.strip()
+    
+    if raw.startswith("```"):
+        raw = raw.replace("```json", "").replace("```", "").strip()
+    
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        data = json.loads(raw)
+    except:
+        return Response({"error": "Réponse IA invalide"}, status=500)
 
-        chat = model.start_chat(history=[])
+    # --- LOGIQUE DE DISPATCH ---
 
-        prompt = (
-            "Tu es un assistant de gestion de projet nommé ProjectFlow AI. "
-            f"Aide l'utilisateur avec sa question : {user_message}"
+    # 1. Recherche par date précise
+    if data["intent"] == "get_tasks_by_date":
+        date_query = data.get("date")
+        tasks = Task.objects.filter(project__owner=user, due_date=date_query)
+        serializer = TaskSerializer(tasks, many=True)
+        
+        count = len(serializer.data)
+        msg = f"J'ai trouvé {count} tâche(s) pour le {date_query}." if count > 0 else f"Aucune tâche n'est prévue pour le {date_query}."
+        
+        return Response({
+            "response": msg,
+            "tasks": serializer.data
+        })
+
+    # 2. Recherche pour les X prochains jours (CORRECTION DE L'ERREUR)
+    if data["intent"] == "get_tasks_next_days":
+        days = int(data.get("days", 0))
+        target_date = today + timedelta(days=days)
+
+        # 🔥 On définit bien la variable 'tasks' ici
+        tasks = Task.objects.filter(
+            project__owner=user,
+            due_date__gte=today,
+            due_date__lte=target_date
         )
+        
+        serializer = TaskSerializer(tasks, many=True)
+        msg = f"Voici vos tâches pour les {days} prochains jours :"
+        
+        return Response({
+            "response": msg,
+            "tasks": serializer.data
+        })
 
-        response = chat.send_message(prompt)
-
-        return Response({'response': response.text})
-
-    except Exception as e:
-        return Response({'error': str(e)}, status=500)
+    # 3. Cas général (L'IA parle normalement)
+    # On récupère le champ "reply" généré par Gemini
+    return Response({
+        "response": data.get("reply", "Je suis ProjectFlow AI, comment puis-je vous aider ?")
+    })
