@@ -135,16 +135,14 @@ def get_user_info(request):
         'username': user.username,
         'email': user.email
     })
+
 import json
-from datetime import timedelta
-from django.utils import timezone
-from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def chatbot_query(request):
+
     user_message = request.data.get("message")
     user = request.user
 
@@ -155,9 +153,11 @@ def chatbot_query(request):
     today = timezone.now().date()
     today_str = today.isoformat()
 
-    model = genai.GenerativeModel("gemini-2.5-flash") # Utilisez votre version (ex: 1.5-flash)
+    model = genai.GenerativeModel("gemini-2.5-flash") 
 
     # MISE À JOUR DU PROMPT : On demande à l'IA de répondre si c'est général
+
+
     prompt = f"""
 Tu es un assistant de gestion de tâches nommé ProjectFlow AI. Nous sommes aujourd'hui le {today_str}.
 
